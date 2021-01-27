@@ -56,12 +56,30 @@ while True:
                 print('Header sent successfully')
 
                 response = s.recv(1024)
+
+                response_header = response.split(b'\r\n\r\n')[0]
+                byte_content_length = response_header.split(b'Content-Length: ')[1]
+                content_length = int(b'648'.decode('utf-8'))
+
+                content = response.split(b'\r\n\r\n')[1]
+                while len(content) != content_length:
+                    print('Getting content')
+                    content += s.recv(1024)
+
+                print(response_header + b'\r\n\r\n' + content)
+
+
+                '''
                 while len(response) > 0:
                     print (response)
                     connection.send(response)
                     print('Sent response to client')
                     response = s.recv(1024)
                     print('Receieved response from web server')
+                '''
+
+                connection.sendall(response_header + b'\r\n\r\n' + content)
+                print('Sent response to client')
                 
                                 
                 s.close()
