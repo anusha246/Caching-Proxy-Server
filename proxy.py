@@ -43,6 +43,9 @@ while True:
             
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+                print(host)
+                print(host.decode('utf-8'))
                 s.connect((host.decode('utf-8'), 80))
 
                 if relative_url == b'':
@@ -55,34 +58,40 @@ while True:
 
                 print('Header sent successfully')
 
-                response = s.recv(1024)
+                response = s.recv(65565)
 
                 response_header = response.split(b'\r\n\r\n')[0]
-                byte_content_length = response_header.split(b'Content-Length: ')[1]
-                content_length = int(b'648'.decode('utf-8'))
 
-                content = response.split(b'\r\n\r\n')[1]
-                while len(content) != content_length:
-                    print('Getting content')
-                    content += s.recv(1024)
+                print(response)
 
-                print(response_header + b'\r\n\r\n' + content)
+                try:
+                    byte_content_length = response_header.split(b'Content-Length: ')[1].split(b'\r\n')[0]
+                    content_length = int(byte_content_length.decode('utf-8'))
 
+                    content = response.split(b'\r\n\r\n')[1]
+                    while len(content) != content_length:
+                        print('Content length: {}, needed len: {}'.format(len(content), content_length))
+                        content += s.recv(65565)
 
-                '''
-                while len(response) > 0:
-                    print (response)
-                    connection.send(response)
+                    print(response_header + b'\r\n\r\n' + content)
+
+                    connection.sendall(response_header + b'\r\n\r\n' + content)
                     print('Sent response to client')
-                    response = s.recv(1024)
-                    print('Receieved response from web server')
-                '''
+                except: #HTTP code 304 or Content-Length not specified
+                    print('HTTP code 304 or Content-Length not specified')
 
-                connection.sendall(response_header + b'\r\n\r\n' + content)
-                print('Sent response to client')
-                
-                                
-                s.close()
+                    if b'200 OK' in response:
+                        while len(response) > 0:
+                            print (response)
+                            connection.send(response)
+                            print('Sent response to client')
+                            response = s.recv(1024)
+                            print('Receieved response from web server')
+                    else:
+                        connection.send(response)
+                    
+                finally:
+                    s.close()
 
             
             #Except block below from
