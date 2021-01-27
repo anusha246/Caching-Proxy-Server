@@ -7,7 +7,7 @@ https://stackoverflow.com/questions/32792333/
 
 import sys, os, time, socket, select
 
-#Code from https://pymotw.com/3/socket/tcp.html below
+# Server code from https://pymotw.com/3/socket/tcp.html below
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -31,25 +31,45 @@ while True:
         if header:
             print('sending data back to the client')
 
+            first_line = header.split(b'\n')[0]
+            url = first_line.split(b' ')[1]
             
+            host = url.split(b'/')[1]
+            
+            relative_url = b''
+            for i in range(2, len(url.split(b'/'))):
+                relative_url += b'/' + url.split(b'/')[i]
 
             
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect(('www.example.org', 80))
-                #s.send(header.encode('utf-8'))
-                print('AAAAAAAAAAAAAAAA')
-                #s.sendall(b'GET /~ylzhang/ HTTP/1.1\r\nHost: localhost:8888\r\nConnection: keep-alive\r\nUpgrade-Insecure-Requests: 1\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nSec-Fetch-Site: none\r\nSec-Fetch-Mode: navigate\r\nSec-Fetch-Dest: document\r\nAccept-Encoding: gzip, deflate, br\r\nAccept-Language: en-US,en;q=0.9\r\n\r\n')
-                s.sendall(b'GET / HTTP/1.1\r\nHost: www.example.com\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\nUpgrade-Insecure-Requests: 1\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nSec-Fetch-Site: none\r\nSec-Fetch-Mode: navigate\r\nSec-Fetch-Dest: document\r\nAccept-Encoding: gzip, deflate, br\r\nAccept-Language: en-US,en;q=0.9\r\n\r\n')
+                s.connect((host.decode('utf-8'), 80))
+
+                if relative_url == b'':
+                    relative_url = b'/'
+
+                header = header.replace(url, relative_url)
+                header = header.replace(b'localhost:8888', host)
                 
-                response = s.recv(65565)
-                print('BBBBBBBBBBBBBBBB')
-                print (response)
-                connection.sendall(response)
+                s.sendall(header)
+
+                print('Header sent successfully')
+
+                response = s.recv(1024)
+                while len(response) > 0:
+                    print (response)
+                    connection.send(response)
+                    print('Sent response to client')
+                    response = s.recv(1024)
+                    print('Receieved response from web server')
                 
+                                
                 s.close()
 
-                
+            
+            #Except block below from
+            #https://stackoverflow.com/questions/32792333/
+            #python-socket-module-connecting-to-an-http-proxy-then-performing-a-get-request
             except socket.error as m:
                print (str(m))
                s.close()
