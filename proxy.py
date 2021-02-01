@@ -12,8 +12,7 @@ def proxy(expiry):
     response_body1 = None
     response_body2 = None
     body_tag = None
-    
-    #yellow_box = b'\x8cK\x0e\x830\x0cD\xaf\x12\xb1G\xfd\xec\x9aP\xee\x02\xd8I\xacZq\x04\xae\x128}\xd3\xd2Y\xbd\x91\xde\xcc\x90\xcd\xa6;\xe3\xb3;zJ\x80\xd5>Z\x9c\xc9\xb2\x91\x92$\xeb\xa9"8\xa3\x92\xed\xfd\x9a\xab3\x8c^\xffX\x0846\xfe\x95\x88\x14\xa2\xda\xdb\xd9\xe6iy\x85U\xde\t\xfaEXV\xbb#\xb3\x94v<\x01P\n\xcd\xfbj^\x92\xf6\xe5\\\xce\xc2\xe0\xbaQ#\x1a\xc5\xaa'
+    content_length = None
     
     # Server code from https://pymotw.com/3/socket/tcp.html below
     # Create a TCP/IP socket
@@ -139,9 +138,20 @@ def proxy(expiry):
                                 timestamp =  time.time()
                                 fresh_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
                                 fresh_time = bytes(fresh_time, encoding='utf8')
+
+                                if content_length:
+                                    
+                                    content_length += 251
+                                    response_body1 = response_body1.replace(b'Content-Length: ' +
+                                                                            byte_content_length,
+                                                                            b'Content-Length: ' +
+                                                                            bytes(str(content_length),encoding='utf8'))
+                                    
+                                
                                 fresh_response = response_body1 + body_tag + b'<p style="z-index:9999; position:fixed; top:20px; left:20px; \
                                 width:200px; height:100px; background-color:yellow; padding:10px; font-weight:bold;">FRESH VERSION \
                                 AT: ' + fresh_time + b'</p>' + response_body2
+                                
                                 connection.sendall(fresh_response)
                             else:
                                 connection.sendall(response)
@@ -152,6 +162,14 @@ def proxy(expiry):
                                 if is_html:
                                     cache_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
                                     cache_time = bytes(cache_time, encoding='utf8')
+
+                                    if content_length:
+                                        content_length += 12
+                                        response_body1 = response_body1.replace(b'Content-Length: ' +
+                                                                                byte_content_length,
+                                                                                b'Content-Length: ' +
+                                                                                bytes(str(content_length),encoding='utf8'))
+                                    
                                     response = response_body1 + body_tag + b'<p style="z-index:9999; position:fixed; top:20px; left:20px; \
                                     width:200px; height:100px; background-color:yellow; padding:10px; font-weight:bold;">CACHED VERSION AS \
                                     OF: '+ cache_time + b'</p>' + response_body2
